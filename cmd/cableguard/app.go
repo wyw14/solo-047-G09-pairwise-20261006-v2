@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/wyw14/cry-103/internal/api"
+	"github.com/wyw14/cry-103/internal/drill"
 	"github.com/wyw14/cry-103/internal/feed"
 	"github.com/wyw14/cry-103/internal/incident"
 	"github.com/wyw14/cry-103/internal/landing"
@@ -113,11 +114,14 @@ func buildServices(cfg config) (*api.Services, error) {
 	ramps := repeater.NewRampController(actuator, telemetryRepository, telemetry.StabilityWindow{MinimumSamples: 2, MaximumSpread: 1.5, MinimumPeriod: time.Second}, checkpoints, now)
 	wetPlantTests := repair.NewTestService(mutes, ids, now, 30*time.Second)
 
+	routes := map[string]*route.Route{"R-S3": routeS3}
+	drills := drill.NewService(topologies, routes, telemetryRepository, journal, now)
+
 	return &api.Services{
 		Clock: clock, IDs: ids, Journal: journal,
-		Spans: map[string]*span.Span{"S3": spanS3}, Routes: map[string]*route.Route{"R-S3": routeS3},
+		Spans: map[string]*span.Span{"S3": spanS3}, Routes: routes,
 		Repeaters: map[string]*repeater.Repeater{"R07": repeaterR07}, Topology: topologies,
-		OTDR: otdrService, Switchovers: switchovers, Permits: permits, Receipts: receipts,
+		OTDR: otdrService, Switchovers: switchovers, Drills: drills, Permits: permits, Receipts: receipts,
 		Acceptance: acceptance, Telemetry: ingestor, TelemetryRepository: telemetryRepository, Admission: admission,
 		Classifier: incident.NewClassifier(), Correlator: otdr.NewCorrelator(), Health: health, Station: station,
 		WetPlantTests: wetPlantTests, Ramps: ramps, Assets: assets,

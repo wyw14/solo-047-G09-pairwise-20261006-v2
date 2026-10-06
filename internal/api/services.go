@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/wyw14/cry-103/internal/drill"
 	"github.com/wyw14/cry-103/internal/feed"
 	"github.com/wyw14/cry-103/internal/incident"
 	"github.com/wyw14/cry-103/internal/landing"
@@ -31,6 +32,7 @@ type Services struct {
 	Topology            *topology.Registry
 	OTDR                *otdr.SessionService
 	Switchovers         *switchover.SessionService
+	Drills              *drill.Service
 	Permits             *repair.PermitService
 	Receipts            *landing.ReceiptRegistry
 	Acceptance          *repair.AcceptanceService

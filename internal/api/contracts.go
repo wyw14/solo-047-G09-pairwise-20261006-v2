@@ -26,6 +26,19 @@ type SwitchoverRequest struct {
 	Reason string `json:"reason"`
 }
 
+// DrillRequest configures an isolated switchover rehearsal. A zero-value body
+// replays with the service default drain budget and an instant replica drain.
+type DrillRequest struct {
+	DrainTimeoutMS int64 `json:"drain_timeout_ms"`
+	DrainDelayMS   int64 `json:"drain_delay_ms"`
+}
+
+// DrillRunResponse pairs a rehearsal run with the snapshot it replayed.
+type DrillRunResponse struct {
+	SnapshotFingerprint string `json:"snapshot_fingerprint"`
+	Run                 any    `json:"run"`
+}
+
 type IsolationRequest struct {
 	CircuitID string `json:"circuit_id"`
 }
