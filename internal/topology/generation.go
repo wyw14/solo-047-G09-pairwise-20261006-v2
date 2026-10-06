@@ -44,3 +44,16 @@ func (r *Registry) Matches(spanID string, generation uint64) bool {
 	snapshot, err := r.Snapshot(spanID)
 	return err == nil && snapshot.Generation == generation
 }
+
+// Load rebuilds registry state from a previously captured snapshot. It exists
+// for read-only consumers (such as switchover drills) that replay state inside
+// an isolated copy; the live registry never calls it.
+func (r *Registry) Load(snapshot Snapshot) error {
+	if err := snapshot.Validate(); err != nil {
+		return err
+	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.spans[snapshot.SpanID] = snapshot
+	return nil
+}

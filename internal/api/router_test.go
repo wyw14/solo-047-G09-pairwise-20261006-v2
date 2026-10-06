@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/wyw14/cry-103/internal/drill"
 	"github.com/wyw14/cry-103/internal/feed"
 	"github.com/wyw14/cry-103/internal/incident"
 	"github.com/wyw14/cry-103/internal/landing"
@@ -59,13 +60,19 @@ func testServer(t *testing.T) *Server {
 	repository := telemetry.NewRepository()
 	acceptance := repair.NewAcceptanceService(switchover.NewRestorer(drainer, activator, registry, ids, clock.Now), clock.Now)
 	acceptance.Register("S3", target, path)
+	switchoverEvents := drill.NewSwitchoverRecorder()
+	drills := drill.NewService(
+		drill.NewCaptor(registry, repository, switchoverEvents, drill.DefaultThresholds(), clock.Now),
+		drill.NewReplayer(), ids, clock.Now,
+	)
 	services := &Services{
 		Clock: clock, IDs: ids, Journal: store.NewJournal(filepath.Join(t.TempDir(), "events.jsonl")),
 		Spans: map[string]*span.Span{"S3": target}, Routes: map[string]*route.Route{"R-S3": path},
 		Repeaters: map[string]*repeater.Repeater{"R07": repeaterAsset}, Topology: registry,
 		OTDR:        otdr.NewSessionService(registry, landing.NewScanner(registry, 0), ids, clock.Now),
 		Switchovers: switchover.NewSessionService(drainer, activator, ids, clock.Now, time.Second),
-		Permits:     permitService, Receipts: receipts, Acceptance: acceptance,
+		Drills:      drills, SwitchoverEvents: switchoverEvents,
+		Permits: permitService, Receipts: receipts, Acceptance: acceptance,
 		Telemetry: telemetry.NewIngestor(repository, clock.Now, projector), TelemetryRepository: repository,
 		Admission: incident.NewAdmissionService(telemetry.NewMuteManager(clock.Now)),
 	}

@@ -19,6 +19,11 @@ func (s *Server) startSwitchover(writer http.ResponseWriter, request *http.Reque
 		return
 	}
 	result, err := s.services.Switchovers.Failover(request.Context(), target)
+	// Record the event as a read-only byproduct for later drills. The recorder
+	// never feeds back into the switchover path.
+	if s.services.SwitchoverEvents != nil {
+		s.services.SwitchoverEvents.Record(result)
+	}
 	if err != nil {
 		writeError(writer, http.StatusConflict, err)
 		return

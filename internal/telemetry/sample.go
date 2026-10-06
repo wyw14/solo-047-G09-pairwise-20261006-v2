@@ -83,3 +83,17 @@ func (r *Repository) Latest(assetID string, kind Kind) (Sample, bool) {
 	}
 	return Sample{}, false
 }
+
+// AssetIDs returns the asset identifiers that currently hold samples, sorted
+// for deterministic iteration. Read-only replay consumers use it to rebuild an
+// isolated repository copy.
+func (r *Repository) AssetIDs() []string {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	ids := make([]string, 0, len(r.samples))
+	for id := range r.samples {
+		ids = append(ids, id)
+	}
+	sort.Strings(ids)
+	return ids
+}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/wyw14/cry-103/internal/api"
+	"github.com/wyw14/cry-103/internal/drill"
 	"github.com/wyw14/cry-103/internal/feed"
 	"github.com/wyw14/cry-103/internal/incident"
 	"github.com/wyw14/cry-103/internal/landing"
@@ -83,6 +84,12 @@ func buildServices(cfg config) (*api.Services, error) {
 
 	acceptance := repair.NewAcceptanceService(restorer, now)
 	acceptance.Register("S3", spanS3, routeS3)
+
+	switchoverEvents := drill.NewSwitchoverRecorder()
+	drillService := drill.NewService(
+		drill.NewCaptor(topologies, telemetryRepository, switchoverEvents, drill.DefaultThresholds(), now),
+		drill.NewReplayer(), ids, now,
+	)
 	station, err := landing.NewStation("east", "East Landing", now())
 	if err != nil {
 		return nil, err
@@ -117,7 +124,8 @@ func buildServices(cfg config) (*api.Services, error) {
 		Clock: clock, IDs: ids, Journal: journal,
 		Spans: map[string]*span.Span{"S3": spanS3}, Routes: map[string]*route.Route{"R-S3": routeS3},
 		Repeaters: map[string]*repeater.Repeater{"R07": repeaterR07}, Topology: topologies,
-		OTDR: otdrService, Switchovers: switchovers, Permits: permits, Receipts: receipts,
+		OTDR: otdrService, Switchovers: switchovers, Drills: drillService,
+		SwitchoverEvents: switchoverEvents, Permits: permits, Receipts: receipts,
 		Acceptance: acceptance, Telemetry: ingestor, TelemetryRepository: telemetryRepository, Admission: admission,
 		Classifier: incident.NewClassifier(), Correlator: otdr.NewCorrelator(), Health: health, Station: station,
 		WetPlantTests: wetPlantTests, Ramps: ramps, Assets: assets,

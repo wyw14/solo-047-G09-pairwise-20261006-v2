@@ -41,6 +41,20 @@ func New(id, spanID string, at time.Time) (*Route, error) {
 	}}, nil
 }
 
+// NewFromSnapshot rebuilds a route from a captured snapshot. Drills use it to
+// replay traffic state inside an isolated copy; live routes are only created
+// through New and mutated through the drain/activate services.
+func NewFromSnapshot(snapshot Snapshot) (*Route, error) {
+	if snapshot.ID == "" || snapshot.SpanID == "" {
+		return nil, fmt.Errorf("route identity is required")
+	}
+	if snapshot.ActivePath != topology.PathPrimary && snapshot.ActivePath != topology.PathProtection {
+		return nil, fmt.Errorf("route active path is invalid")
+	}
+	snapshot.UpdatedAt = snapshot.UpdatedAt.UTC()
+	return &Route{snapshot: snapshot}, nil
+}
+
 func (r *Route) Snapshot() Snapshot {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
